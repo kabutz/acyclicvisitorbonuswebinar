@@ -1,21 +1,28 @@
 package methodhandles_gof1;
 
 import java.lang.invoke.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 public abstract class Expression {
-  private final MethodHandle visitMethod;
-  private static final MethodHandle defaultVisitMethod;
+  private final static Map<Class<? extends Expression>, MethodHandle> methodHandleCache =
+      new ConcurrentHashMap<>();
+  private final MethodHandle visitMethod =
+      methodHandleCache.computeIfAbsent(getClass(), this::getVisitMethodHandle);
 
-  {
+  private MethodHandle getVisitMethodHandle(Class<? extends Expression> expClass) {
     try {
-      visitMethod = MethodHandles.publicLookup().findVirtual(
+      System.out.println("Looking for visit() method handle for " + expClass);
+      return MethodHandles.publicLookup().findVirtual(
           getVisitorClass(), "visit", MethodType.methodType(void.class,
-              getClass())
+              expClass)
       );
     } catch (ReflectiveOperationException e) {
       throw new Error(e);
     }
   }
+
+  private static final MethodHandle defaultVisitMethod;
 
   static {
     try {
